@@ -9,16 +9,16 @@ async def create_pool(loop, **kw):
     logging.info('create database connection pool...')
     global __pool
     __pool = await aiomysql.create_pool(
-        host = kw.get('host', 'localhost'),
-        port = kw.get('port', 3306),
-        user = kw['user'],
-        password = kw['password'],
-        db = kw['db'],
-        charset = kw.get('charset', 'utf8'),
-        autocommit = kw.get('autocommit', True),
-        maxsize = kw.get('maxsize', 10),
-        minsize = kw.get('minsize',1),
-        loop = loop
+        host=kw.get('host', 'localhost'),
+        port=kw.get('port', 3306),
+        user=kw['user'],
+        password=kw['password'],
+        db=kw['db'],
+        charset=kw.get('charset', 'utf8'),
+        autocommit=kw.get('autocommit', True),
+        maxsize=kw.get('maxsize', 10),
+        minsize=kw.get('minsize', 1),
+        loop=loop
     )
 
 async def select(sql, args, size=None):
@@ -68,9 +68,9 @@ class Field(object):
     def __str__(self):
         return '<%s, %s:%s>' % (self.__class__.__name__, self.column_type, self.name)
 
-class StringFiled(Field):
-    def __init__(self, name=None, default=False):
-        super().__init__(name, 'boolean', False, default)
+class StringField(Field):
+    def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
+        super().__init__(name, ddl, primary_key, default)
 
 class BooleanField(Field):
 
@@ -101,15 +101,16 @@ class ModelMetaclass(type):
         mappings = dict()
         fields = []
         primaryKey = None
-        for k, v in attrs.item():
+        for k, v in attrs.items():
             if isinstance(v, Field):
                 logging.info('found mapping: %s ==> %s' %(k, v))
                 mappings[k] = v
                 if v.primary_key:
-                    raise StandardError('Duplicate primary key for filed: %s' % k )
-                primaryKey = k
-            else:
-                fields.append(k)
+                    if primaryKey:
+                        raise StandardError('Duplicate primary key for filed: %s' % k )
+                    primaryKey = k
+                else:
+                    fields.append(k)
         if not primaryKey:
             raise StandardError('Primary key not found')
         for k in mappings.keys():
@@ -129,7 +130,7 @@ class Model(dict, metaclass=ModelMetaclass):
     def __init__(self, **kw):
         super(Model, self).__init__(**kw)
 
-    def __gettar__(self,key):
+    def __getattr__(self,key):
         try:
             return self[key]
         except KeyError:
