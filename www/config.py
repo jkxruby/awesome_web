@@ -1,8 +1,9 @@
+
 import config_default
 
 class Dict(dict):
     '''
-    simple dict but support access as x.y style.
+    Simple dict but support access as x.y style.
     '''
     def __init__(self, names=(), values=(), **kw):
         super(Dict, self).__init__(**kw)
@@ -13,7 +14,7 @@ class Dict(dict):
         try:
             return self[key]
         except KeyError:
-            raise AttributeError(r" 'Dict' object has no attribute '%s' " % key)
+            raise AttributeError(r"'Dict' object has no attribute '%s'" % key)
 
     def __setattr__(self, key, value):
         self[key] = value

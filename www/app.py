@@ -1,5 +1,3 @@
-
-# 编写web app 骨架,对应廖 app.py
 import logging; logging.basicConfig(level=logging.INFO)
 
 import asyncio, os, json, time
@@ -7,6 +5,7 @@ from datetime import datetime
 
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
+
 import orm
 from coroweb import add_routes, add_static
 
@@ -35,7 +34,7 @@ async def logger_factory(app, handler):
     async def logger(request):
         logging.info('Request: %s %s' % (request.method, request.path))
         # await asyncio.sleep(0.3)
-        return await handler(request)
+        return (await handler(request))
     return logger
 
 async def data_factory(app, handler):
@@ -47,7 +46,7 @@ async def data_factory(app, handler):
             elif request.content_type.startswith('application/x-www-form-urlencoded'):
                 request.__data__ = await request.post()
                 logging.info('request form: %s' % str(request.__data__))
-        return await handler(request)
+        return (await handler(request))
     return parse_data
 
 async def response_factory(app, handler):
@@ -98,13 +97,8 @@ def datetime_filter(t):
         return u'%s小时前' % (delta // 3600)
     if delta < 604800:
         return u'%s天前' % (delta // 86400)
-    dt = datetime.formtimestamp(t)
+    dt = datetime.fromtimestamp(t)
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
-
-
-#def index(request):
-#    return web.Response(body=b' <h1>awesome</h1>', content_type='text/html' )
-
 
 async def init(loop):
     await orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='www', password='www', db='awesome')
@@ -114,14 +108,10 @@ async def init(loop):
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
-    #app.router.add_route('GET', '/', index)
-    srv = await loop.create_server(app.make_handler(),'127.0.0.1', 9000)
+    srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
     logging.info('server started at http://127.0.0.1:9000...')
     return srv
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
 loop.run_forever()
-
-
-
