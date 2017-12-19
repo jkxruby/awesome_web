@@ -14,4 +14,3 @@ configs = {
         'secret': 'Awesome'
     }
 }
-
