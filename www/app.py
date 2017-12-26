@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+'no problem'
 
 '''
 async web application.
@@ -18,6 +19,7 @@ from config import configs
 
 import orm
 from coroweb import add_routes, add_static
+
 from handlers import cookie2user, COOKIE_NAME
 
 def init_jinja2(app, **kw):
@@ -41,6 +43,14 @@ def init_jinja2(app, **kw):
             env.filters[name] = f
     app['__templating__'] = env
 
+@asyncio.coroutine
+def logger_factory(app, handler):
+    @asyncio.coroutine
+    def logger(request):
+        logging.info('Request: %s %s' % (request.method, request.path))
+        # yield from asyncio.sleep(0.3)
+        return (yield from handler(request))
+    return logger
 
 @asyncio.coroutine
 def auth_factory(app, handler):
@@ -58,16 +68,6 @@ def auth_factory(app, handler):
             return web.HTTPFound('/signin')
         return (yield from handler(request))
     return auth
-
-
-@asyncio.coroutine
-def logger_factory(app, handler):
-    @asyncio.coroutine
-    def logger(request):
-        logging.info('Request: %s %s' % (request.method, request.path))
-        # yield from asyncio.sleep(0.3)
-        return (yield from handler(request))
-    return logger
 
 @asyncio.coroutine
 def data_factory(app, handler):
@@ -108,6 +108,7 @@ def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
+                r['__user__'] = request.__user__
                 resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
@@ -140,7 +141,7 @@ def datetime_filter(t):
 def init(loop):
     yield from orm.create_pool(loop=loop, **configs.db)
     app = web.Application(loop=loop, middlewares=[
-        logger_factory, response_factory
+        logger_factory, auth_factory, response_factory
     ])
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
